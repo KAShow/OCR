@@ -42,13 +42,13 @@
          <div class="col-lg-6">
            <div class="card shadow-sm">
              <div class="card-body">
-               <h5 class="card-title mb-3">بحث دلالي</h5>
+               <h5 class="card-title mb-3">بحث نصي</h5>
                <form action="{{ url_for('search') }}" method="post">
                  <div class="input-group">
-                   <input class="form-control" type="text" name="query" placeholder="أدخل استعلامك" disabled>
-                   <button class="btn btn-secondary" type="submit" disabled>بحث</button>
+                   <input class="form-control" type="text" name="query" value="{{ search_query or '' }}" placeholder="أدخل استعلامك">
+                   <button class="btn btn-primary" type="submit">بحث</button>
                  </div>
-                 <small class="text-muted d-block mt-2">سيُفعّل بعد المرحلة 2 (FAISS)</small>
+                 <small class="text-muted d-block mt-2">هذا بحث نصي بسيط. البحث الدلالي (FAISS) سيُضاف لاحقًا.</small>
                </form>
              </div>
            </div>
@@ -56,6 +56,39 @@
        </div>
 
        <div class="row mt-4">
+        {% if search_results is defined and search_results %}
+        <div class="col-12 mb-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title mb-3">نتائج البحث</h5>
+              <div class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>الملف</th>
+                      <th>الصفحة</th>
+                      <th>مقتطف</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for r in search_results %}
+                    <tr>
+                      <td>{{ r.filename }}</td>
+                      <td>{{ r.page_number }}</td>
+                      <td><code class="text-wrap" style="white-space: pre-wrap;">{{ r.snippet }}</code></td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% elif search_query %}
+          <div class="col-12 mb-4">
+            <div class="alert alert-warning m-0">لا توجد نتائج لهذا الاستعلام.</div>
+          </div>
+        {% endif %}
          <div class="col-12">
            <div class="card shadow-sm">
              <div class="card-body">

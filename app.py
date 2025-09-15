@@ -150,8 +150,64 @@ def upload():
 
 @app.route("/search", methods=["GET", "POST"])
 def search():
-    flash("البحث الدلالي سيتاح بعد إضافة FAISS في المرحلة 2")
-    return redirect(url_for("index"))
+    session = SessionLocal()
+    try:
+        # دائمًا أعرض أحدث الملفات كما في الصفحة الرئيسية
+        recent_docs = (
+            session.query(Document)
+            .order_by(Document.upload_timestamp.desc())
+            .limit(10)
+            .all()
+        )
+        doc_pages_count = {}
+        for d in recent_docs:
+            count = session.query(Page).filter(Page.document_id == d.id).count()
+            doc_pages_count[d.id] = count
+
+        search_query = ""
+        search_results = []
+
+        if request.method == "POST":
+            search_query = (request.form.get("query") or "").strip()
+        else:
+            search_query = (request.args.get("query") or "").strip()
+
+        if search_query:
+            # بحث نصي بسيط عبر LIKE/ILIKE
+            rows = (
+                session.query(Page, Document)
+                .join(Document, Page.document_id == Document.id)
+                .filter(Page.content.ilike(f"%{search_query}%"))
+                .order_by(Document.upload_timestamp.desc(), Page.page_number.asc())
+                .limit(50)
+                .all()
+            )
+
+            for page, doc in rows:
+                content = page.content or ""
+                # مقتطف قصير حول أول تطابق
+                idx = content.lower().find(search_query.lower())
+                start = max(idx - 60, 0) if idx >= 0 else 0
+                end = min(start + 200, len(content))
+                snippet = content[start:end]
+                search_results.append(
+                    {
+                        "filename": doc.filename,
+                        "page_number": page.page_number,
+                        "upload_timestamp": doc.upload_timestamp,
+                        "snippet": snippet,
+                    }
+                )
+
+        return render_template(
+            "index.html",
+            recent_docs=recent_docs,
+            doc_pages_count=doc_pages_count,
+            search_results=search_results,
+            search_query=search_query,
+        )
+    finally:
+        session.close()
 
 
 if __name__ == "__main__":
